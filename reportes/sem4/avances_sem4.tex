@@ -1,0 +1,378 @@
+\documentclass[12pt,letterpaper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{setspace}
+\usepackage{csquotes}
+\usepackage{booktabs}
+\usepackage{titling}
+\usepackage{siunitx}
+\usepackage[backend=biber,style=ieee]{biblatex}
+\addbibresource{references.bib}
+
+\geometry{left=2.5cm, right=2.5cm, top=2.5cm, bottom=2.5cm}
+
+\graphicspath{{figuras/}}
+
+% --- Figura con placeholder automático: compila con o sin la imagen ----------
+% Uso: \figph{archivo.png}{Pie de figura}{clave_label}
+% Si figuras/archivo.png no existe, dibuja un recuadro PLACEHOLDER.
+\usepackage{xcolor}
+\newcommand{\figph}[3]{%
+  \begin{figure}[H]
+    \centering
+    \IfFileExists{figuras/#1}{%
+      \includegraphics[width=0.9\textwidth]{#1}%
+    }{%
+      \fcolorbox{gray}{gray!8}{\begin{minipage}[c][0.22\textheight][c]{0.88\textwidth}%
+        \centering\footnotesize\color{gray!55!black}%
+        [\,PLACEHOLDER\,]\\[4pt] \texttt{\detokenize{figuras/#1}}%
+      \end{minipage}}%
+    }
+    \caption{#2}
+    \label{fig:#3}
+  \end{figure}%
+}
+
+% =============================================================================
+% Reporte de Avance — Cuarto Semestre
+% Continuidad del reporte de Tercer Semestre (instrumentación PA propietaria).
+% Estado: BORRADOR. Las marcas % TODO indican datos/figuras pendientes del autor.
+% =============================================================================
+
+\title{Análisis de Tejidos mediante Tomografía Fotoacústica e IA\\
+Validación de la Cadena de Adquisición con ADC Físico y Diagnóstico del
+Front-End de Detección Ultrasónica}
+\author{Eduardo Santos Mena \\ Asesores: Dr. Samuel Pérez Huerta, Dr. Augusto David Ariza Flores \\
+\small Unidad Académica de Ciencia y Tecnología de la Luz y la Materia, UAZ}
+\date{Reporte de Avance - Cuarto Semestre 2026} % TODO: confirmar periodo/fechas
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\noindent
+Este reporte da continuidad a la línea de ingeniería de instrumentación
+fotoacústica (PAT) iniciada en el periodo anterior, en el que el núcleo digital se
+validó con señales sintéticas (\textit{Virtual ADC}). En este cuarto periodo se
+completó la integración física del conversor analógico-digital (AD9226) con la
+FPGA y se certificó, ahora con señal real, que la cadena de adquisición de datos
+(DAQ) captura, almacena y transmite sin pérdida de información, alcanzando una
+resolución de 12 bits a una tasa de muestreo de 54~MSPS. Asimismo, se consolidó la
+operación del Driver de excitación V2.0 con retroalimentación óptica. Al llevar el
+sistema completo al banco para la primera adquisición fotoacústica, se obtuvo un
+\textbf{resultado negativo rigurosamente controlado}: la señal observada,
+sincronizada con el disparo láser, se demostró mediante tres controles
+independientes (desconexión del sensor, ausencia de retardo de tiempo de vuelo e
+independencia respecto a la distancia) como \textbf{acoplamiento electromagnético
+(pickup)}, no como detección acústica. El análisis localiza la barrera en el primer
+eslabón de la cadena de detección —un transductor piezoeléctrico de alta impedancia
+conectado en crudo al digitalizador, sin pre-amplificación— y define el front-end
+analógico de detección (pre-amplificador de bajo ruido, acoplamiento de impedancias,
+apantallamiento y sincronía por disparo óptico) como el paso decisivo. Se propone un
+protocolo de \textit{bring-up} por capas de la detección, un plan de contingencia y
+una re-planificación del cronograma.
+
+En conjunto, este periodo cierra la validación del subsistema digital y aísla con
+precisión el cuello de botella real del sistema, trasladando el reto desde el
+dominio del cómputo (resuelto) hacia el de la detección de señales débiles en
+presencia de una excitación de alto voltaje.
+\end{abstract}
+
+\newpage
+\section{Introducción}
+
+La tomografía fotoacústica (PAT) es una modalidad de imagen híbrida que combina la
+especificidad molecular de la excitación óptica con la resolución de la detección
+ultrasónica, sin radiación ionizante~\cite{lin_emerging_2022}. Este trabajo se
+enmarca en un proyecto de doctorado (LUMAT--UAZ) cuyo objetivo general es
+\textbf{desarrollar y evaluar un sistema integrado de PAT y \textit{deep learning}
+para la detección temprana de la artritis reumatoide (AR)}, combinando
+instrumentación propia de bajo costo y algoritmos de reconstrucción y segmentación
+basados en redes neuronales convolucionales~\cite{hauptmann_deep_2020}
+~\cite{grohl_deep_2021}. La AR es un caso de estudio idóneo: la PAT puede revelar
+cambios vasculares precoces (angiogénesis sinovial) antes de que sean visibles en
+las modalidades convencionales. El protocolo plantea como metas del sistema una
+resolución espacial de 150--200~$\mu$m y una profundidad efectiva de 1--2~cm en
+tejido articular.
+
+La estrategia del proyecto se divide en dos etapas: (a) diseño y validación del
+sistema de adquisición PAT, y (b) desarrollo de los algoritmos de análisis. El
+esfuerzo de instrumentación ha progresado de forma incremental: en el \textbf{segundo
+semestre} se diseñó y validó la fuente de excitación óptica —un driver de corriente
+en modo avalancha que dispara láseres LED de \SI{445}{\nano\meter} con pulsos
+inferiores a \SI{30}{\nano\second}, a costo accesible~\cite{wu_advanced_2021}
+~\cite{li_photoacoustic_2020}—; en el \textbf{tercer semestre} se evolucionó dicha
+fuente (Driver V2.0) y se desarrolló el núcleo digital del sistema de adquisición,
+certificado con señales sintéticas internas (\textit{Virtual ADC}).
+
+El presente periodo aborda la transición desde la validación sintética hacia la
+operación con \textbf{hardware físico completo}: la integración del conversor
+analógico-digital con la lógica de la FPGA y el primer intento de adquisición de
+una señal fotoacústica real. Como se documenta en este reporte, dicho intento
+reveló que, una vez resuelto el subsistema digital, la dificultad dominante reside
+en la \textbf{interfaz analógica de detección}: la conversión de una onda acústica
+débil, captada por un transductor piezoeléctrico de alta impedancia, en una señal
+eléctrica observable, en un entorno donde la excitación de alto voltaje constituye
+un agresor electromagnético sincronizado con la medición.
+
+\section{Objetivos del Periodo}
+
+El objetivo general fue validar la cadena de adquisición completa con hardware
+físico y realizar la primera caracterización de la cadena de detección
+fotoacústica.
+
+Objetivos específicos:
+\begin{enumerate}
+    \item \textbf{Integración física ADC--FPGA:} montar el módulo AD9226 y
+    certificar, con señal real, la integridad, linealidad y respuesta dinámica de
+    la cadena de adquisición.
+    \item \textbf{Operación del Driver V2.0:} verificar la estabilidad de la fuente
+    de excitación y su subsistema de retroalimentación óptica.
+    \item \textbf{Primera adquisición de detección:} intentar la captura de una
+    señal acústica/fotoacústica y caracterizar el desempeño de la cadena de
+    detección.
+\end{enumerate}
+
+\section{Metodología y Desarrollo}
+
+\subsection{Integración física del ADC y validación por etapas}
+La integración del digitalizador se realizó siguiendo una metodología de
+\textit{bring-up} por etapas, en la que cada capa valida una sola variable y no se
+avanza hasta que la anterior se comporta exactamente como se espera. Esta
+estrategia, heredada de la depuración del enlace digital, permite atribuir
+cualquier fallo a lo que la etapa en curso agregó.
+
+El módulo AD9226 se montó sobre la plataforma de integración del sistema: una placa
+de acrílico que aloja, atornilladas, las PCBs de todas las etapas
+(Figura~\ref{fig:acrilico}).
+
+\figph{placa-acrilico.png}{Plataforma de integración: placa de acrílico con las PCBs
+de todas las etapas del sistema atornilladas.}{acrilico}
+
+\subsection{Caracterización del DAQ en rango}
+Con el ADC físico operando, se repitieron los protocolos de validación para
+confirmar el comportamiento de la cadena completa: integridad de transmisión,
+linealidad de la conversión y reconstrucción de señales dinámicas, ahora sobre
+datos reales y no sintéticos.
+
+\subsection{Montaje de detección y protocolo de adquisición}
+El transductor piezoeléctrico (Yushi, \SI{2.5}{\mega\hertz}) se conectó mediante un
+conector BNC y un cable BNC--SMA directamente a la entrada del módulo AD9226 y,
+en paralelo, al osciloscopio para observación directa. La excitación se realizó con
+el Driver V2.0. Para discriminar el origen de la señal observada se diseñaron
+controles de descarte (desconexión del sensor, variación de la distancia y análisis
+del retardo temporal), descritos en la Sección~\ref{sec:resultados}.
+
+\figph{montaje.png}{Montaje de banco empleado en el intento de adquisición de
+detección.}{montaje}
+
+\subsection{Driver V2.0 en operación}
+El Driver V2.0 operó conforme a lo establecido en el periodo anterior: control
+embebido (RP2040), gestión térmica y retroalimentación óptica mediante fotodiodo y
+amplificador de transimpedancia para la estimación de energía por pulso.
+
+\section{Resultados}
+\label{sec:resultados}
+
+\subsection{Cadena de adquisición con ADC físico (positivo)}
+La integración física del AD9226 con la FPGA quedó validada: el sistema captura,
+almacena en memoria interna y transmite las ráfagas sin pérdida de datos,
+operando a \SI{54}{\mega\hertz} (54~MSPS) con una resolución
+efectiva de 12 bits (LSB $\approx \SI{2.44}{\milli\volt}$). La resolución temporal
+resultante (aproximadamente 21.6 muestras por ciclo a \SI{2.5}{\mega\hertz}) es
+suficiente para resolver el \textit{ringing} característico del transductor.
+
+\figph{bringup-etapas.png}{Validación por etapas del FPGA con el ADC físico:
+resultados de los experimentos de integridad, linealidad y respuesta dinámica
+(metodología \textit{bring-up}, carpeta \texttt{bringup/}).}{bringup}
+
+\subsection{Driver de excitación V2.0 (positivo)}
+El Driver V2.0 entregó pulsos de corriente estables (Figura~\ref{fig:pulsos}),
+manteniendo la operación de la fuente de excitación durante las pruebas.
+
+\figph{pulsos-corriente.png}{Pulsos de corriente del Driver V2.0.}{pulsos}
+
+\subsection{Primera adquisición de detección: resultado negativo controlado}
+Al excitar el sistema, el canal del transductor (CH2) registró una onda de
+aproximadamente \SI{150}{\milli\volt} pico a pico, coincidente con el pulso láser
+(CH1) y con apariencia de \textit{ringing} en torno a \SI{2.6}{\mega\hertz}. Tres
+controles independientes demuestran que esta señal \textbf{no es de origen
+acústico}:
+
+\begin{enumerate}
+    \item \textbf{Desconexión del sensor:} la misma onda persiste con el transductor
+    físicamente desconectado, por lo que no proviene del elemento piezoeléctrico.
+    \item \textbf{Ausencia de retardo (t = 0):} la señal coincide exactamente con el
+    disparo láser, sin el retardo de tiempo de vuelo que tendría una onda acústica;
+    es, por tanto, de naturaleza electromagnética.
+    \item \textbf{Independencia de la distancia:} variar la distancia entre la fuente
+    y el sensor no modifica la señal, confirmando la ausencia de dependencia con el
+    tiempo de vuelo.
+\end{enumerate}
+
+Se concluye que la señal observada corresponde a \textbf{acoplamiento
+electromagnético (pickup)} sincronizado con la descarga de excitación, y no a una
+detección acústica. La frecuencia de \textit{ringing} observada queda determinada
+por la red de entrada (cable y impedancia de entrada del digitalizador) y no por la
+resonancia del transductor, como evidencia su persistencia con el sensor
+desconectado. Una prueba con fuente mecánica conocida (rotura de mina,
+Hsu--Nielsen, sin láser) tampoco produjo señal observable, resultado consistente
+con la ausencia de pre-amplificación y con el hecho de que dicha fuente concentra su
+energía por debajo de \SI{1}{\mega\hertz}, mal acoplada a un transductor de
+\SI{2.5}{\mega\hertz}.
+
+\figph{ringing-falso.png}{Control de descarte. CH1: pulso láser; CH2: onda de
+$\sim$150~mV pp coincidente con el disparo y con apariencia de \textit{ringing}
+($\sim$2.6~MHz). La señal persiste con el sensor desconectado y llega en $t=0$
+(sin retardo de tiempo de vuelo), evidenciando acoplamiento electromagnético
+(\textit{pickup}) y no detección acústica.}{pickup}
+
+\section{Discusión}
+
+\subsection{El cuello de botella está en el front-end de detección}
+Los resultados separan con claridad los subsistemas validados (ADC, FPGA, enlace,
+Driver V2.0) del subsistema bloqueante. Como ni una fuente mecánica conocida ni el
+láser produjeron señal acústica observable, la incógnita no reside en el láser ni en
+el dominio digital, sino en la cadena
+sensor~$\rightarrow$~acoplamiento~$\rightarrow$~(pre)amplificación~$\rightarrow$~observabilidad.
+La causa principal identificada es la \textbf{ausencia de un pre-amplificador}: el
+transductor, fuente de alta impedancia, se conecta en crudo al digitalizador y al
+osciloscopio, de modo que una señal fotoacústica esperada en el orden de los
+microvoltios a milivoltios queda por debajo tanto del piso de observación como del
+\textit{pickup} de \SI{150}{\milli\volt}.
+
+\subsection{Protocolo de \textit{bring-up} de la detección}
+Se propone validar la cadena de detección por capas, en analogía con el
+\textit{bring-up} digital:
+\begin{itemize}
+    \item \textbf{D0 — Salud eléctrica del piezo:} medición de capacitancia (LCR) y
+    continuidad para confirmar que el elemento está intacto.
+    \item \textbf{D1 — Respuesta mecánica directa} (con el láser apagado): un
+    estímulo mecánico en la cara del transductor debe producir un transitorio
+    observable en el osciloscopio, sin posibilidad de confusión con \textit{pickup}.
+    \item \textbf{D2 — Fuente acústica conocida y acoplada}, preferentemente
+    \textit{in-band}.
+    \item \textbf{D3 — Incorporación del pre-amplificador} de bajo ruido junto al
+    sensor.
+    \item \textbf{D4 — Reintroducción del láser}, buscando la señal en la ventana
+    retardada por tiempo de vuelo y verificando su desplazamiento con la distancia.
+\end{itemize}
+
+\subsection{Especificación del pre-amplificador}
+El pre-amplificador debe amplificar señales débiles \textbf{en el sensor}, sin
+cargar el transductor de alta impedancia y sin añadir ruido apreciable, sobre la
+banda del transductor. Las especificaciones objetivo son: impedancia de entrada
+$\geq \SI{1}{\mega\ohm}$; ganancia de 40--60~dB; ancho de banda plano de
+0.1--5~MHz; ruido referido a la entrada $\leq$ 3--5~nV/$\sqrt{\text{Hz}}$; y
+apantallamiento integral. Una salida de baja impedancia, además, reduce de forma
+sustancial la susceptibilidad al \textit{pickup} en el cableado respecto a la línea
+cruda de alta impedancia.
+
+% TODO: tabla de trade-off de candidatos (p. ej. AD8331/AD8332 de ultrasonido) y
+% selección final.
+
+\subsection{El acoplamiento electromagnético como artefacto a controlar}
+El \textit{pickup} de la descarga de alto voltaje no es la barrera principal, pero
+debe controlarse para no confundirlo con señal y para evitar que sature la entrada
+cuando exista detección real. Las medidas previstas son: sincronía por disparo
+óptico (empleando el fotodiodo/TIA del Driver V2.0 como referencia temporal limpia),
+apantallamiento tipo Faraday, y la separación temporal de la señal (ventana
+retardada o pre-trigger), dado que la señal acústica real llega con un retardo de
+tiempo de vuelo respecto al \textit{pickup} en $t = 0$.
+
+\section{Limitaciones}
+\begin{itemize}
+    \item La validación de la detección está pendiente; aún no se ha demostrado una
+    señal acústica real por encima del piso de observación.
+    \item La ventana de captura actual (5~$\mu$s, $\approx \SI{7.7}{\milli\meter}$ de
+    profundidad) es insuficiente para la cobertura de tejido objetivo; su ampliación
+    requiere la implementación de \textit{buffers} (FIFO) en la FPGA.
+    \item No se dispone de \textit{pulser} ni de un segundo transductor para una
+    validación acústica \textit{in-band} inmediata (véase Plan~B/C).
+\end{itemize}
+
+\section{Conclusiones}
+\begin{enumerate}
+    \item \textbf{Subsistema digital cerrado:} la cadena de adquisición con ADC
+    físico quedó validada (12 bits, 54~MSPS, sin pérdida de datos), superando lo
+    proyectado para el periodo.
+    \item \textbf{Cuello de botella aislado:} mediante controles independientes se
+    demostró que la lectura observada es acoplamiento electromagnético y no
+    detección acústica, localizando la barrera en el front-end analógico de
+    detección.
+    \item \textbf{Camino accionable:} se define un protocolo de \textit{bring-up} de
+    la detección y la especificación de un pre-amplificador como paso decisivo.
+\end{enumerate}
+
+\section{Plan de Contingencia (Plan B / C)}
+Dado que no se dispone de \textit{pulser} ni de un segundo transductor, la validación
+acústica \textit{in-band} se prioriza por viabilidad:
+\begin{itemize}
+    \item \textbf{B-1 (equipo actual):} láser sobre un absorbente fuerte (grafito,
+    tinta china) acoplado por gel a distancia conocida, buscando la señal en la
+    ventana retardada por tiempo de vuelo y verificando su desplazamiento con la
+    distancia.
+    \item \textbf{B-2:} pulso-eco con generador de funciones (\textit{burst} de
+    \SI{2.5}{\mega\hertz}) e inyección eléctrica calibrada para caracterizar la
+    cadena receptora.
+    \item \textbf{C:} adquisición/fabricación de un \textit{pulser} de ultrasonido y/o
+    un segundo transductor para validación por pulso-eco / transmisión en tanque de
+    agua.
+    \item \textbf{Contingencia de alcance:} de persistir la dificultad, reencuadrar
+    el entregable como plataforma de instrumentación PA de bajo costo con cadena de
+    recepción caracterizada, difiriendo la imagen en fantoma.
+\end{itemize}
+
+\section{Re-planificación y Evaluación del Retraso}
+
+El retraso está \textbf{localizado en un único hito} (la primera adquisición
+acústica) y no afecta el camino de datos, ya cerrado. Su magnitud está acotada al
+ciclo de diseño, fabricación y prueba del front-end analógico; las etapas
+posteriores (procesamiento de señal e IA) son predominantemente de software sobre
+datos ya capturables, por lo que pueden comprimirse una vez establecida la
+detección.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|p{0.16\textwidth}|p{0.40\textwidth}|p{0.36\textwidth}|}
+    \hline
+    \textbf{Bloque} & \textbf{Actividad principal} & \textbf{Entregable} \\ \hline
+    B1 & Diseño del front-end de detección: pre-amplificador, acoplamiento de
+    impedancias, apantallamiento y sincronía óptica & Esquemático + simulación +
+    presupuesto de ruido \\ \hline
+    B1$'$ & Validación de la cadena de recepción (Plan~B-1/B-2) & Señal acústica
+    real capturada (de-riesgo) \\ \hline
+    B2 & Fabricación y prueba del front-end & Cadena de recepción caracterizada
+    (ganancia/BW/ruido) \\ \hline
+    B3 & Firmware: ventana de captura ampliada (FIFO) y ventana retardada/pre-trigger
+    & A-scan de profundidad útil \\ \hline
+    B4 & Primera adquisición PA en fantoma (gelatina + grafito) & A-scan PA con
+    tiempo de vuelo coherente \\ \hline
+    B5 & Procesamiento de señal (retroproyección) & Reconstrucción básica \\ \hline
+    B6 & IA preliminar (denoising 1D) y escritura & Artículo / reporte \\ \hline
+    \end{tabular}
+    \caption{Cronograma revisado.} % TODO: asignar meses/fechas reales del periodo.
+    \label{tab:cronograma_rev}
+\end{table}
+
+\section{Reflexiones}
+La metodología de validación por capas permitió afirmar con certeza que el
+subsistema digital no es el problema y señalar el analógico: ese aislamiento es, en
+sí mismo, el avance del periodo. El proyecto transita de la pregunta
+\enquote{¿podemos digitalizar?} (resuelta) a \enquote{¿podemos detectar señales
+débiles junto a una excitación de alto voltaje?}, que es la pregunta correcta y más
+difícil. La lección —que en sistemas fotoacústicos de bajo costo el front-end
+analógico y la integridad electromagnética dominan el éxito tanto como el cómputo—
+constituye una contribución relevante para el artículo de instrumentación previsto.
+
+\printbibliography
+
+\end{document}
