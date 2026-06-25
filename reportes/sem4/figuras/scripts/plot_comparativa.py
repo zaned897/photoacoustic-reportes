@@ -68,7 +68,8 @@ def save_daq_captura(td, vd, vdp):
     ax.plot(td, vdp, color=ORANGE, lw=1.6, label="promedio coherente x32")
     ax.set_xlabel("tiempo desde el trigger (µs)")
     ax.set_ylabel("señal del sense 0.1 Ω (mV)")
-    ax.set_title("Captura del DAQ (corriente del diodo, sense 0.1 Ω): 270 muestras @ 54 MS/s, 12 bit")
+    ax.set_title("Captura del DAQ — corriente del diodo (sense 0.1 Ω, 54 MS/s, 12 bit)",
+                 fontsize=10)
     ax.grid(alpha=0.3)
     ax.legend(fontsize=8)
     fig.tight_layout()
