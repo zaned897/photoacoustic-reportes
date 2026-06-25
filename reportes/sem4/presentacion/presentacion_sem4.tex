@@ -87,7 +87,7 @@ Unidad Académica de Ciencia y Tecnología de la Luz y la Materia, UAZ}
 \node[block, right=0.7cm of exc] (trg) {\textbf{2. Trigger}\\[3pt]\scriptsize pin 77 / S2\\
   \scriptsize detección de flanco\\ \scriptsize arranque de ventana};
 \node[block, right=0.7cm of trg] (adc) {\textbf{3. Conversión}\\[3pt]\scriptsize AD9226 $\cdot$ 12 bit\\
-  \scriptsize 54 MSPS (PLL $\times$2)\\ \scriptsize $\pm$5 V, LSB 2.44 mV};
+  \scriptsize 54 MS/s (PLL $\times$2)\\ \scriptsize $\pm$5 V, LSB 2.44 mV};
 \node[block, right=0.7cm of adc] (cap) {\textbf{4. Captura}\\[3pt]\scriptsize store-and-forward\\
   \scriptsize BRAM 270 muestras\\ \scriptsize ventana 5\,$\mu$s};
 \node[block, right=0.7cm of cap] (uart) {\textbf{5. Enlace}\\[3pt]\scriptsize UART\\
@@ -116,9 +116,9 @@ transmisión en el tiempo muerto entre disparos.}
 3 & Lectura del ADC (voltímetro) & \checkmark \\
 4 & Captura por reloj interno (5 kHz) & \checkmark \\
 5 & Captura por trigger externo & \checkmark \\
-6 & Ráfaga 270 muestras @ 27 MSPS & \checkmark \\
-7 & Ráfaga @ 54 MSPS (PLL $\times$2) & \checkmark \\
-8 & Ráfaga @ 54 MSPS + 12 bits & \checkmark \\
+6 & Ráfaga 270 muestras @ 27 MS/s & \checkmark \\
+7 & Ráfaga @ 54 MS/s (PLL $\times$2) & \checkmark \\
+8 & Ráfaga @ 54 MS/s + 12 bits & \checkmark \\
 \bottomrule
 \end{tabular}
 \vfill
@@ -163,14 +163,14 @@ $\Rightarrow$ se omiten disparos $\Rightarrow$ \alert{promediado coherente}
 \end{frame}
 
 % ---------------------------------------------------------------------------
-\begin{frame}{Tasa de muestreo: PLL ×2 → 54 MSPS}
+\begin{frame}{Tasa de muestreo: PLL ×2 → 54 MS/s}
 \begin{columns}[T]
 \begin{column}{0.56\textwidth}
   \imgph[1.0]{fig-muestreo-nyquist.png}
 \end{column}
 \begin{column}{0.44\textwidth}
   \begin{itemize}
-    \item 27 MHz $\rightarrow$ 54 MSPS (Ts: 37 $\rightarrow$ 18.5 ns).
+    \item 27 MHz $\rightarrow$ 54 MS/s (Ts: 37 $\rightarrow$ 18.5 ns).
     \item 2.5 MHz: 10.8 $\rightarrow$ \alert{21.6 muestras/ciclo}.
     \item Sobremuestreo holgado del \textit{ringing}.
   \end{itemize}
@@ -216,7 +216,7 @@ $\Rightarrow$ se omiten disparos $\Rightarrow$ \alert{promediado coherente}
 \begin{column}{0.5\textwidth}
   \begin{itemize}
     \item Captura, almacena y transmite \alert{sin pérdida de datos}.
-    \item \textbf{54 MSPS}, \textbf{12 bits} (LSB 2.44 mV).
+    \item \textbf{54 MS/s}, \textbf{12 bits} (LSB 2.44 mV).
     \item $\sim$21.6 muestras/ciclo a 2.5 MHz $\rightarrow$ resuelve el
       \textit{ringing} del sensor.
     \item Supera lo proyectado para el periodo.
@@ -357,7 +357,7 @@ B6  & IA (denoising) + escritura & Artículo / reporte \\
 % ---------------------------------------------------------------------------
 \begin{frame}{Conclusiones}
   \begin{enumerate}
-    \item \textbf{DAQ validado (avance central):} 12 bits, 54 MSPS, sin pérdida de
+    \item \textbf{DAQ validado (avance central):} 12 bits, 54 MS/s, sin pérdida de
       datos, con hardware físico.
     \item \textbf{Driver V2.0 y potencia:} operación estable + estimación por pulso.
     \item \textbf{Detección localizada:} la lectura es \textit{pickup}, no acústica;

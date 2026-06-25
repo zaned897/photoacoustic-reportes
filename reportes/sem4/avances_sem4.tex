@@ -46,7 +46,7 @@
 % =============================================================================
 % Reporte de Avance — Cuarto Semestre
 % Enfoque: el DAQ es el avance central; la detección pasa a trabajo futuro.
-% Estado: BORRADOR. Las marcas % TODO indican datos/figuras pendientes del autor.
+% Estado: SEMIFINAL — figuras reales integradas; sin marcas TODO pendientes.
 % =============================================================================
 
 \title{Análisis de Tejidos mediante Tomografía Fotoacústica e IA\\
@@ -68,7 +68,7 @@ fotoacústica. Dando continuidad al periodo anterior —en el que el núcleo dig
 validó con señales sintéticas (\textit{Virtual ADC})—, en esta etapa se completó la
 integración física del conversor analógico-digital (AD9226) con la FPGA y se
 certificó, con señal real, que la cadena captura, almacena y transmite sin pérdida de
-información a \textbf{54~MSPS con 12 bits de resolución} (LSB de 2.44~mV). Se
+información a \textbf{54~MS/s con 12 bits de resolución} (LSB de 2.44~mV). Se
 documenta la arquitectura del DAQ por etapas y subetapas, su validación incremental
 (\textit{bring-up}) y la evidencia de captura a la velocidad y niveles especificados.
 En paralelo, se consolidó el Driver de excitación V2.0 y se obtuvo una estimación
@@ -133,7 +133,7 @@ Objetivos específicos:
     certificar, con señal real, la integridad, linealidad y respuesta dinámica de
     la cadena de adquisición, a la velocidad y resolución de diseño.
     \item \textbf{Operación del Driver V2.0:} verificar la estabilidad de la fuente
-    de excitación y estimar la potencia óptica por pulso mediante su monitor.
+    de excitación y estimar la potencia de excitación.
     \item \textbf{Caracterización inicial de la detección (etapa crítica
     anticipada):} realizar el primer intento de adquisición y discriminar
     rigurosamente el origen de la señal observada.
@@ -161,7 +161,7 @@ muerto entre disparos, desacoplando la velocidad de muestreo de la de transmisi�
 \node[block, right=0.7cm of exc] (trg) {\textbf{2. Trigger}\\[3pt]\scriptsize pin 77 / botón S2\\
   \scriptsize detección de flanco\\ \scriptsize arranque de ventana};
 \node[block, right=0.7cm of trg] (adc) {\textbf{3. Conversión}\\[3pt]\scriptsize AD9226 $\cdot$ 12 bit\\
-  \scriptsize 54 MSPS (PLL $\times$2)\\ \scriptsize $\pm$5 V, LSB 2.44 mV};
+  \scriptsize 54 MS/s (PLL $\times$2)\\ \scriptsize $\pm$5 V, LSB 2.44 mV};
 \node[block, right=0.7cm of adc] (cap) {\textbf{4. Captura}\\[3pt]\scriptsize FSM store-and-forward\\
   \scriptsize BRAM 270 muestras\\ \scriptsize ventana 5\,$\mu$s};
 \node[block, right=0.7cm of cap] (uart) {\textbf{5. Enlace}\\[3pt]\scriptsize UART (115200--1M)\\
@@ -198,9 +198,9 @@ en curso agregó (Tabla~\ref{tab:bringup}).
 3 & Lectura del ADC en vivo (voltímetro) & \checkmark \\
 4 & Captura por reloj interno (5 kHz) & \checkmark \\
 5 & Captura por trigger externo & \checkmark \\
-6 & Ráfaga de 270 muestras @ 27 MSPS & \checkmark \\
-7 & Ráfaga @ 54 MSPS (PLL $\times$2) & \checkmark \\
-8 & Ráfaga @ 54 MSPS + 12 bits (LSB 2.44 mV) & \checkmark \\
+6 & Ráfaga de 270 muestras @ 27 MS/s & \checkmark \\
+7 & Ráfaga @ 54 MS/s (PLL $\times$2) & \checkmark \\
+8 & Ráfaga @ 54 MS/s + 12 bits (LSB 2.44 mV) & \checkmark \\
 \bottomrule
 \end{tabular}
 \caption{Validación incremental (\textit{bring-up}) del DAQ. Todas las subetapas
@@ -255,7 +255,7 @@ transmisión, lo que motiva el \textbf{promediado coherente} de eventos
 omiten disparos. La tasa efectiva la limita la transmisión, no la captura.}{timing}
 
 \subsection{Tasa de muestreo: del cristal al PLL}
-El cristal de 27~MHz se duplica a \textbf{54~MSPS} mediante el PLL interno de la FPGA
+El cristal de 27~MHz se duplica a \textbf{54~MS/s} mediante el PLL interno de la FPGA
 (rPLL, $\times2$), reduciendo el periodo de muestreo de 37~ns a 18.5~ns. Para el
 transductor de 2.5~MHz esto eleva el sobremuestreo de 10.8 a \textbf{21.6
 muestras/ciclo} (Figura~\ref{fig:muestreo}), reconstruyendo con holgura el
@@ -272,7 +272,7 @@ adquisición sobre el transitorio —cada punto es una muestra de 12 bits cada 1
 \figph{daq-muestreo.png}{Muestreo real del DAQ. Arriba: ventana de 270 muestras
 (cada punto = una muestra). Abajo: zoom al transitorio en representación discreta
 (\textit{stem}), donde se aprecia cada punto de adquisición y que el evento queda en
-~1 muestra.}{daqmuestreo}
+$\sim$1 muestra.}{daqmuestreo}
 
 \subsection{Profundidad de codificación}
 Se pasó de 8 a \textbf{12 bits} reales del AD9226. Sobre el rango de $\pm5$~V
@@ -293,7 +293,7 @@ del GW1NR-9C ($\approx$468~Kbit): \textbf{la memoria no es el factor limitante}
 (Figura~\ref{fig:memoria}); el cuello de botella real es la transmisión por UART.
 
 \figph{fig-memoria.png}{Memoria por ráfaga frente a la ventana de captura para 8/10/12
-bits a 54~MSPS. La capacidad de BSRAM del FPGA excede ampliamente lo
+bits a 54~MS/s. La capacidad de BSRAM del FPGA excede ampliamente lo
 necesario.}{memoria}
 
 \section{Metodología y Desarrollo}
@@ -337,7 +337,7 @@ detección.}{montaje}
 \subsection{Cadena de adquisición con ADC físico}
 La integración física del AD9226 con la FPGA quedó validada: el sistema captura,
 almacena en memoria interna y transmite las ráfagas \textbf{sin pérdida de datos},
-operando a \SI{54}{\mega\hertz} (54~MSPS) con una resolución efectiva de 12 bits
+operando a \SI{54}{\mega\hertz} (54~MS/s) con una resolución efectiva de 12 bits
 (LSB $\approx \SI{2.44}{\milli\volt}$). La resolución temporal resultante
 (aproximadamente 21.6 muestras por ciclo a \SI{2.5}{\mega\hertz}) es suficiente para
 resolver el \textit{ringing} característico del transductor. La
@@ -350,7 +350,7 @@ integridad de transmisión, linealidad de la conversión y respuesta dinámica
 (metodología \textit{bring-up}).}{bringup}
 
 \figph{daq-captura.png}{Captura del DAQ (corriente del diodo vía sense de
-0.1~$\Omega$): ventana de 270 muestras @ 54~MSPS, 12 bit (LSB 2.44~mV); una
+0.1~$\Omega$): ventana de 270 muestras @ 54~MS/s, 12 bit (LSB 2.44~mV); una
 adquisición individual y su promedio coherente $\times$32. Evidencia de captura a la
 velocidad y niveles especificados.}{captura}
 
@@ -384,7 +384,7 @@ con la tensión del diodo medida en el osciloscopio se obtuvo una \textbf{estima
 preliminar} de la potencia eléctrica de excitación (Figura~\ref{fig:potencia}); su
 carácter es de orden de magnitud, pues ambas magnitudes provienen de adquisiciones no
 simultáneas del disparo —periódico y reproducible— y la corriente está submuestreada
-a 54~MSPS (cota inferior del pico).
+a 54~MS/s (cota inferior del pico).
 
 \figph{pulsos-corriente.png}{Pulso de corriente del diodo, obtenido de la caída en el
 \textit{shunt} de 0.1~$\Omega$ digitalizada por el DAQ.}{pulsos}
@@ -434,7 +434,7 @@ acústica.}{pickup}
 
 \subsection{El DAQ como contribución central}
 El resultado principal del periodo es un \textbf{DAQ de alta velocidad, validado y de
-bajo costo}. La cadena captura sin pérdida a 54~MSPS con 12 bits, un sobremuestreo
+bajo costo}. La cadena captura sin pérdida a 54~MS/s con 12 bits, un sobremuestreo
 holgado respecto a la frecuencia central del transductor (\SI{2.5}{\mega\hertz}) que
 reconstruye con fidelidad la señal acústica esperada. La arquitectura
 \textit{store-and-forward} aprovecha el bajo ciclo de trabajo del láser para sostener
@@ -485,7 +485,7 @@ entrada de alta-Z (pre-amplificador).}{impedancia}
 \section{Conclusiones}
 \begin{enumerate}
     \item \textbf{DAQ validado (avance central):} la cadena de adquisición con ADC
-    físico quedó certificada —12 bits, 54~MSPS, sin pérdida de datos— a la velocidad y
+    físico quedó certificada —12 bits, 54~MS/s, sin pérdida de datos— a la velocidad y
     niveles de diseño, superando lo proyectado para el periodo.
     \item \textbf{Driver V2.0 y potencia:} la fuente de excitación operó de forma
     estable y se obtuvo una estimación preliminar de la potencia de excitación.
