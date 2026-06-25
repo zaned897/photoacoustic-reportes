@@ -78,10 +78,34 @@ def save_daq_captura(td, vd, vdp):
     print("OK ->", out)
 
 
+def save_pulsos_corriente(td, vd, vdp):
+    """Pulso de corriente del diodo desde el sense de 0.1 Ω (I = V_sense / R).
+    NOTA: asume lectura directa del sense (sin atenuación/ganancia extra). El valor
+    es la corriente MUESTREADA a 54 MS/s; el pico real (de ns) la excede por
+    submuestreo. Ajustar R/factor si hay divisor o etapa de ganancia."""
+    R = 0.1
+    iA = vd / 1000.0 / R
+    iAp = vdp / 1000.0 / R
+    fig, ax = plt.subplots(figsize=(7.2, 3.6))
+    ax.plot(td, iA, color="0.7", lw=0.9, marker="o", ms=2, label="1 ventana")
+    ax.plot(td, iAp, color=ORANGE, lw=1.6, label="promedio x32")
+    ax.set_xlabel("tiempo desde el trigger (µs)")
+    ax.set_ylabel("corriente del diodo (A)")
+    ax.set_title("Pulso de corriente del diodo — DAQ en sense 0.1 Ω (I = V/0.1)",
+                 fontsize=10)
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    out = os.path.join(BASE, "pulsos-corriente.png")
+    fig.savefig(out, dpi=150)
+    print("OK ->", out)
+
+
 def main():
     to, vo = load_osc(OSC)
     td, vd, vdp = load_daq(DAQ)
     save_daq_captura(td, vd, vdp)
+    save_pulsos_corriente(td, vd, vdp)
     # alinear t=0 en el pico (máxima desviación de la base)
     to0 = to - to[int(np.argmax(np.abs(vo - np.median(vo))))]
     td0 = td - td[int(np.argmax(np.abs(vd - np.median(vd))))]
