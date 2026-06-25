@@ -260,6 +260,15 @@ muestras/ciclo} (Figura~\ref{fig:muestreo}), reconstruyendo con holgura el
 $\times2$) sobre la captura del \textit{ringing} de 2.5~MHz: de 10.8 a 21.6
 muestras por ciclo.}{muestreo}
 
+La Figura~\ref{fig:daqmuestreo} muestra el muestreo \textbf{real} del DAQ sobre una
+captura: la ventana de 270 muestras y, en detalle (\textit{stem}), cada punto de
+adquisición sobre el transitorio —cada punto es una muestra de 12 bits cada 18.5~ns.
+
+\figph{daq-muestreo.png}{Muestreo real del DAQ. Arriba: ventana de 270 muestras
+(cada punto = una muestra). Abajo: zoom al transitorio en representación discreta
+(\textit{stem}), donde se aprecia cada punto de adquisición y que el evento queda en
+~1 muestra.}{daqmuestreo}
+
 \subsection{Profundidad de codificación}
 Se pasó de 8 a \textbf{12 bits} reales del AD9226. Sobre el rango de $\pm5$~V
 (10~Vpp), esto multiplica los niveles de cuantización de 256 a 4096 y reduce el LSB de
@@ -347,7 +356,12 @@ evento con timing coherente}. Las amplitudes difieren (V vs mV) porque cada
 instrumento mide en un punto/escala distinto del sistema; y a 54~MS/s el transitorio
 ($\sim$25~ns FWHM en la referencia) queda en $\sim$1 muestra, coherente con la
 resolución temporal del DAQ: capta el evento y su amplitud, no su estructura de
-nanosegundos (Sección~\ref{sec:futuro}).
+nanosegundos (Sección~\ref{sec:futuro}). El transitorio capturado corresponde a la
+\textbf{descarga de avalancha} que excita el diodo láser —pulsos de pocos
+nanosegundos con corrientes de decenas de amperios, según la técnica de conmutación
+en avalancha de transistores de Jim Williams~\cite{williams_an47}—, que llevan al
+diodo a potencias pico muy por encima de su régimen continuo; su naturaleza
+ultracorta es justamente lo que el DAQ submuestrea a 54~MS/s.
 
 \figph{daq-vs-osc.png}{Mismo transitorio del láser capturado por el osciloscopio de
 referencia (200~MS/s) y por el DAQ propio (54~MS/s, 12~bit), alineados en el instante
