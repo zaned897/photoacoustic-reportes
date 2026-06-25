@@ -67,9 +67,23 @@ Unidad Académica de Ciencia y Tecnología de la Luz y la Materia, UAZ}
   \end{alertblock}
   \begin{itemize}
     \item Integración física ADC (AD9226) — FPGA.
-    \item Operación del Driver V2.0 y estimación de potencia óptica.
-    \item Caracterización inicial de la detección (\textit{etapa crítica anticipada}).
+    \item Operación del Driver V2.0 y estimación de potencia de excitación.
+    \item Caracterización inicial de la detección.
   \end{itemize}
+\end{frame}
+
+% ---------------------------------------------------------------------------
+\begin{frame}{Materiales}
+  \begin{itemize}
+    \item \textbf{FPGA:} Tang Nano 9K (Gowin GW1NR-9C), 27 MHz.
+    \item \textbf{ADC:} módulo AD9226 (12 bit, hasta 65 MS/s).
+    \item \textbf{Excitación:} Driver de corriente V2.0 (validado), modo avalancha.
+    \item \textbf{Láser:} diodo LED 445 nm (Nichia NUBM44/47).
+    \item \textbf{Transductor:} piezoeléctrico Yushi 2.5 MHz.
+    \item \textbf{Sensado de corriente:} \textit{shunt} de 0.1 $\Omega$.
+  \end{itemize}
+  \vfill
+  {\footnotesize Código de la FPGA: \texttt{github.com/zaned897/photoacoustic\_daq}}
 \end{frame}
 
 % ---------------------------------------------------------------------------
@@ -231,6 +245,14 @@ $\Rightarrow$ se omiten disparos $\Rightarrow$ \alert{promediado coherente}
 \end{frame}
 
 % ---------------------------------------------------------------------------
+\begin{frame}{Software final de adquisición}
+  \centering
+  \imgph[0.92]{exports/captura_20260624_200325.png}\\[2pt]
+  {\scriptsize GUI: ventana completa, zoom de región, histórico; promedio coherente y
+  lectura en mV/código.}
+\end{frame}
+
+% ---------------------------------------------------------------------------
 \begin{frame}{Driver V2.0 y estimación de potencia}
 \begin{columns}[T]
 \begin{column}{0.5\textwidth}
@@ -245,10 +267,13 @@ $\Rightarrow$ se omiten disparos $\Rightarrow$ \alert{promediado coherente}
 \end{frame}
 
 % ---------------------------------------------------------------------------
-\begin{frame}{La etapa crítica anticipada: la detección}
-  Convertir una onda acústica \textbf{débil} ($\mu$V–mV), captada por un transductor
-  de \textbf{alta impedancia}, en señal observable —y en presencia de una excitación
-  de \textbf{alto voltaje}— se anticipó como la parte \alert{más difícil} del sistema.
+\begin{frame}{La detección: por qué es compleja (razones objetivas)}
+  \begin{itemize}
+    \item Señal acústica esperada de \textbf{$\mu$V–mV} (cerca del piso de ruido).
+    \item Transductor = fuente de \textbf{alta impedancia}.
+    \item Excitación de \textbf{alto voltaje} que acopla ruido electromagnético.
+    \item Evento de \textbf{nanosegundos} (submuestreado a 54 MS/s).
+  \end{itemize}
   \begin{block}{Primer intento}
     Con el DAQ ya validado, se llevó el sistema al banco para la primera adquisición.
   \end{block}
@@ -258,17 +283,14 @@ $\Rightarrow$ se omiten disparos $\Rightarrow$ \alert{promediado coherente}
 \begin{frame}{Caracterización: la señal observada es \textit{pickup}}
 \begin{columns}[T]
 \begin{column}{0.54\textwidth}
-  CH2 mostró $\sim$150 mV pp coincidentes con el láser ($\sim$2.6 MHz).
-  \begin{alertblock}{Prueba decisiva}
-    \textbf{Desconexión del sensor:} la onda \emph{persiste} con el transductor
-    desconectado $\Rightarrow$ no proviene del piezo. Por sí sola basta.
+  En el osciloscopio: \textit{ringing} acústico aparente ($\sim$2.5 MHz, $\sim$150 mV pp).
+  \begin{alertblock}{No es acústica: es \textit{pickup} EM}
+    Persiste con el sensor \emph{desconectado}, llega en $t=0$ (sin tiempo de vuelo) y
+    no cambia con la distancia.
   \end{alertblock}
-  Dos controles que \textbf{corroboran}:
-  \begin{itemize}
-    \item \textbf{$t=0$:} sin retardo de tiempo de vuelo $\rightarrow$ es
-      electromagnética, no acústica.
-    \item \textbf{Distancia:} no cambia al alejar la fuente (sin dependencia de TOF).
-  \end{itemize}
+  \textbf{Además, se pierde al pasar al ADC} (solo se ve en el osciloscopio, 1~M$\Omega$):
+  evidencia del \alert{acoplamiento de impedancias} —la entrada del ADC carga el piezo
+  de alta-Z.
 \end{column}
 \begin{column}{0.46\textwidth}
   \centering \imgph[1.0]{ringing-falso.png}\\[2pt]
