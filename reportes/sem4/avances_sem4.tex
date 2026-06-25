@@ -344,29 +344,32 @@ especificados.
 integridad de transmisión, linealidad de la conversión y respuesta dinámica
 (metodología \textit{bring-up}).}{bringup}
 
-\figph{daq-captura.png}{Captura del DAQ: ventana de 270 muestras @ 54~MSPS, 12 bit
-(LSB 2.44~mV); una adquisición individual y su promedio coherente $\times$32.
-Evidencia de captura a la velocidad y niveles especificados.}{captura}
+\figph{daq-captura.png}{Captura del DAQ (corriente del diodo vía sense de
+0.1~$\Omega$): ventana de 270 muestras @ 54~MSPS, 12 bit (LSB 2.44~mV); una
+adquisición individual y su promedio coherente $\times$32. Evidencia de captura a la
+velocidad y niveles especificados.}{captura}
 
 Para validar la adquisición sobre una \textbf{señal real rápida}, se capturó el mismo
 transitorio sincronizado al láser con el osciloscopio de referencia (200~MS/s) y con
 el DAQ propio (54~MS/s, 12~bit). La Figura~\ref{fig:daqvsosc}, con ambas trazas
 alineadas en el instante del transitorio, muestra que el DAQ \textbf{reproduce el
-evento con timing coherente}. Las amplitudes difieren (V vs mV) porque cada
-instrumento mide en un punto/escala distinto del sistema; y a 54~MS/s el transitorio
+evento con timing coherente}. Ambos instrumentos miden el mismo disparo en magnitudes
+distintas: el osciloscopio registra la \textbf{tensión directamente en el láser} y el
+DAQ digitaliza la \textbf{corriente del diodo} a través de la resistencia de sensado
+de 0.1~$\Omega$. A 54~MS/s el transitorio
 ($\sim$25~ns FWHM en la referencia) queda en $\sim$1 muestra, coherente con la
 resolución temporal del DAQ: capta el evento y su amplitud, no su estructura de
 nanosegundos (Sección~\ref{sec:futuro}). El transitorio capturado corresponde a la
 \textbf{descarga de avalancha} que excita el diodo láser —pulsos de pocos
-nanosegundos con corrientes de decenas de amperios, según la técnica de conmutación
-en avalancha de transistores de Jim Williams~\cite{williams_an47}—, que llevan al
-diodo a potencias pico muy por encima de su régimen continuo; su naturaleza
-ultracorta es justamente lo que el DAQ submuestrea a 54~MS/s.
+nanosegundos, según la técnica de conmutación en avalancha de transistores de Jim
+Williams~\cite{williams_an47}—, que lo lleva por encima de su régimen continuo de
+operación; su naturaleza ultracorta es justamente lo que el DAQ submuestrea a 54~MS/s.
 
-\figph{daq-vs-osc.png}{Mismo transitorio del láser capturado por el osciloscopio de
-referencia (200~MS/s) y por el DAQ propio (54~MS/s, 12~bit), alineados en el instante
-del evento. El DAQ reproduce el transitorio con \textit{timing} coherente; las escalas
-verticales difieren por medir en puntos distintos del sistema.}{daqvsosc}
+\figph{daq-vs-osc.png}{Mismo disparo de avalancha medido por dos vías: el osciloscopio
+registra la \textbf{tensión en el láser} (200~MS/s) y el DAQ la \textbf{corriente del
+diodo} en el sense de 0.1~$\Omega$ (54~MS/s, 12~bit), alineados en el instante del
+evento. El DAQ reproduce el transitorio con \textit{timing} coherente; las magnitudes
+verticales son distintas (tensión vs corriente).}{daqvsosc}
 
 \subsection{Driver de excitación V2.0 y estimación de potencia}
 El Driver V2.0 entregó pulsos de corriente estables (Figura~\ref{fig:pulsos}). A

@@ -42,7 +42,7 @@ def main():
                     f"Ts={Ts:.1f} ns (54 MS/s), {t[-1]-t[0]:.1f} us",
                     fontsize=10, loc="left")
     ax[0].set_xlabel("tiempo desde el trigger (us)")
-    ax[0].set_ylabel("amplitud (mV)")
+    ax[0].set_ylabel("señal del sense 0.1 Ω (mV)")
     ax[0].grid(alpha=0.3)
     ax[0].annotate("cada punto = 1 muestra (12 bit)", xy=(t[5], mv[5]),
                    xytext=(1.2, mv.min()*0.6), fontsize=8, color=ORANGE,
@@ -56,7 +56,7 @@ def main():
     ax[1].set_title(f"Zoom al transitorio — muestras discretas (stem): "
                     f"primeras {k} muestras", fontsize=10, loc="left")
     ax[1].set_xlabel("tiempo desde el trigger (us)")
-    ax[1].set_ylabel("amplitud (mV)")
+    ax[1].set_ylabel("señal del sense 0.1 Ω (mV)")
     ax[1].grid(alpha=0.3)
     it = int(np.argmax(np.abs(mv[:k] - np.median(mv))))
     ax[1].annotate(f"transitorio: ~1 muestra\n(t={t[it]:.3f} us, {mv[it]:.0f} mV)",
